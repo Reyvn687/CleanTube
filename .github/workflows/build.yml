@@ -1,0 +1,42 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+      YOUTUBE_API_KEY_2: ${{ secrets.YOUTUBE_API_KEY_2 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check API key
+        run: |
+          if [ -n "$YOUTUBE_API_KEY" ]; then
+            echo "API açarı secret-dən tapıldı"
+          elif grep -q '^[^#[:space:]]' youtube_api_key.txt 2>/dev/null; then
+            echo "API açarı youtube_api_key.txt faylından tapıldı"
+          else
+            echo "::warning::API açarı tapılmadı. youtube_api_key.txt faylına yaz və ya secret əlavə et."
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Build APK
+        run: gradle assembleRelease --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CleanTube-apk
+          path: app/build/outputs/apk/release/*.apk
